@@ -1,0 +1,41 @@
+[package]
+name = "fishing-funds"
+version = "0.1.0"
+description = "基金,大盘,股票,虚拟货币状态栏显示小应用"
+authors = ["1zilc"]
+edition = "2021"
+
+[lib]
+name = "fishing_funds_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-store = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-http = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-os = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json"] }
+base64 = "0.22"
+csv = "1.3"
+chrono = { version = "0.4", features = ["serde"] }
+openai-api-rs = "5"
+log = "0.4"
+env_logger = "0.11"
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"

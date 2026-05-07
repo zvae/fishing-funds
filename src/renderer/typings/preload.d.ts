@@ -1,43 +1,47 @@
-import { Shell, Dialog, App, IpcRenderer, Clipboard } from 'electron';
-import type HttpClient from '../../main/httpClient';
-
 declare global {
   interface Window {
     contextModules: {
-      request: HttpClient['request'];
+      request: (url: string, config: any) => Promise<any>;
       process: {
         production: boolean;
-        platform: NodeJS.Platform;
-        electron: string;
-        node: string;
-        v8: string;
-        chrome: string;
-        arch: NodeJS.Architecture;
-        buildDate: string;
-        sandboxed: boolean;
+        platform: string;
+        tauri: string;
+        arch: string;
+        buildDate: number;
       };
       electron: {
-        shell: Shell;
-        ipcRenderer: IpcRenderer;
-        dialog: Dialog;
+        shell: {
+          openExternal: (url: string) => Promise<void>;
+        };
+        ipcRenderer: {
+          invoke: (channel: string, ...args: any[]) => Promise<any>;
+          removeAllListeners: (channel: string) => void;
+          removeListener: (channel: string, listener: any) => void;
+          on: (channel: string, listener: any) => void;
+        };
+        dialog: {
+          showMessageBox: (config: any) => Promise<any>;
+          showSaveDialog: (config: any) => Promise<any>;
+          showOpenDialog: (config: any) => Promise<any>;
+        };
         app: {
-          quit: App['quit'];
-          relaunch: App['relaunch'];
-          setLoginItemSettings: App['setLoginItemSettings'];
-          getVersion: () => Promise<ReturnType<App['getVersion']>>;
+          setLoginItemSettings: (config: any) => Promise<void>;
+          quit: () => Promise<void>;
+          relaunch: () => Promise<void>;
+          getVersion: () => Promise<string>;
         };
         clipboard: {
-          writeText: Clipboard['writeText'];
-          readText: Clipboard['readText'];
-          writeImage: (dataUrl: string) => void;
+          readText: () => Promise<string>;
+          writeText: (text: string) => Promise<void>;
+          writeImage: (dataUrl: string) => Promise<void>;
         };
       };
       io: {
         saveImage: (filePath: string, dataUrl: string) => Promise<unknown>;
         saveString: (filePath: string, content: string) => Promise<unknown>;
         saveJsonToCsv: (filePath: string, json: any[]) => Promise<unknown>;
-        readStringFile: (content: string) => Promise<string>;
-        readFile: (content: string) => Promise<ArrayBuffer>;
+        readStringFile: (path: string) => Promise<string>;
+        readFile: (path: string) => Promise<ArrayBuffer>;
       };
       electronStore: {
         get: <T = unknown>(type: Store.StoreType, key: string, init?: T) => Promise<T>;
@@ -49,3 +53,5 @@ declare global {
     };
   }
 }
+
+export {};

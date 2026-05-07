@@ -1,19 +1,14 @@
 {
   "name": "fishing-funds",
   "productName": "Fishing Funds",
-  "description": "基金,大盘,股票,虚拟货币状态栏显示小应用,基于Electron开发,支持 MacOS,Windows,Linux客户端,数据源来自天天基金,蚂蚁基金,爱基金,腾讯证券,新浪基金等",
-  "main": "release/app/dist/main/index.mjs",
+  "description": "基金,大盘,股票,虚拟货币状态栏显示小应用,基于Tauri 2.0开发,支持 MacOS,Windows,Linux客户端,数据源来自天天基金,蚂蚁基金,爱基金,腾讯证券,新浪基金等",
   "scripts": {
-    "dev": "bunx --bun electron-vite dev",
-    "build": "electron-vite build",
-    "preview": "electron-vite preview",
-    "build:icon": "electron-icon-builder --input=./build/icon.png --output=./icon-build",
-    "package": "npm run build && electron-builder build -p never",
-    "package-mac": "npm run build && electron-builder build -m -p never",
-    "package-all": "npm run build && electron-builder build -mwl -p never",
-    "release-all": "npm run build && electron-builder build -mwl -p always",
-    "beta-mac": "npm run build && electron-builder build -m -p always",
-    "beta-all": "npm run build && electron-builder build -mw -p always"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "build": {
     "productName": "Fishing Funds",
@@ -110,7 +105,7 @@
     "url": "https://github.com/1zilc/fishing-funds/issues"
   },
   "keywords": [
-    "electron",
+    "tauri",
     "react",
     "redux",
     "macos",
@@ -149,11 +144,20 @@
     "compare-versions": "^6.1.1",
     "dayjs": "^1.11.19",
     "echarts": "^6.0.0",
-    "electron": "^40.0.0",
-    "electron-builder": "^26.4.0",
-    "electron-icon-builder": "^2.0.1",
-    "electron-vite": "5.0.0",
     "generate-react-cli": "^9.1.0",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-autostart": "^2.0.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.0.0",
+    "@tauri-apps/plugin-dialog": "^2.0.0",
+    "@tauri-apps/plugin-fs": "^2.0.0",
+    "@tauri-apps/plugin-global-shortcut": "^2.0.0",
+    "@tauri-apps/plugin-http": "^2.0.0",
+    "@tauri-apps/plugin-notification": "^2.0.0",
+    "@tauri-apps/plugin-os": "^2.0.0",
+    "@tauri-apps/plugin-process": "^2.0.0",
+    "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tauri-apps/plugin-store": "^2.0.0",
+    "@tauri-apps/plugin-updater": "^2.0.0",
     "hxc3-indicator-formula": "^1.0.9",
     "js-base64": "^3.7.8",
     "number-precision": "^1.6.0",
@@ -172,15 +176,7 @@
   "dependencies": {
     "@json2csv/plainjs": "^7.0.6",
     "@nivalis/string-similarity": "5.0.0",
-    "electron-log": "^5.4.3",
-    "electron-store": "^10.0.1",
-    "electron-updater": "^6.7.3",
-    "electron-window-state": "^5.0.3",
-    "fetch-socks": "^1.3.2",
-    "menubar": "^9.5.2",
-    "openai": "^6.16.0",
-    "postcss-nesting": "^14.0.0",
-    "undici": "^7.18.2"
+    "openai": "^6.16.0"
   },
   "devEngines": {
     "runtime": {
