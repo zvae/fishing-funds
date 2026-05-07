@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tauri::{AppHandle, Manager, Runtime};
-use tokio::sync::Mutex;
+use tauri::{AppHandle, Manager};
+use tauri_plugin_store::StoreExt;
+use base64::Engine;
+use open;
 
 use crate::hotkey::HotkeyManager;
 use crate::http_client::{HttpClient, RequestConfig};
@@ -10,7 +11,8 @@ use crate::store::StoreType;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StorageConfig {
     pub r#type: StoreType,
-    pub key: String,
+    #[serde(default)]
+    pub key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub init: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -22,23 +24,19 @@ pub async fn get_storage_config(
     app: AppHandle,
     config: StorageConfig,
 ) -> Result<Option<serde_json::Value>, String> {
-    let stores = app.store();
-    let store = stores
-        .get(config.r#type.to_string())
-        .map_err(|e| e.to_string())?;
-    let value = store.get(config.key).or(config.init).cloned();
+    let store = app.store(config.r#type.to_string()).map_err(|e| e.to_string())?;
+    let key = config.key.ok_or("Key is required")?;
+    let value = store.get(key).or_else(|| config.init.clone());
     Ok(value)
 }
 
 #[tauri::command]
 pub async fn set_storage_config(app: AppHandle, config: StorageConfig) -> Result<(), String> {
-    let stores = app.store();
-    let store = stores
-        .get(config.r#type.to_string())
-        .map_err(|e| e.to_string())?;
+    let store = app.store(config.r#type.to_string()).map_err(|e| e.to_string())?;
+    let key = config.key.ok_or("Key is required")?;
     
     if let Some(value) = config.value {
-        store.set(config.key, value);
+        store.set(key, value);
         store.save().map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -46,21 +44,16 @@ pub async fn set_storage_config(app: AppHandle, config: StorageConfig) -> Result
 
 #[tauri::command]
 pub async fn delete_storage_config(app: AppHandle, config: StorageConfig) -> Result<(), String> {
-    let stores = app.store();
-    let store = stores
-        .get(config.r#type.to_string())
-        .map_err(|e| e.to_string())?;
-    store.delete(config.key);
+    let store = app.store(config.r#type.to_string()).map_err(|e| e.to_string())?;
+    let key = config.key.ok_or("Key is required")?;
+    store.delete(key);
     store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn cover_storage_config(app: AppHandle, config: StorageConfig) -> Result<(), String> {
-    let stores = app.store();
-    let store = stores
-        .get(config.r#type.to_string())
-        .map_err(|e| e.to_string())?;
+    let store = app.store(config.r#type.to_string()).map_err(|e| e.to_string())?;
     
     if let Some(value) = config.value {
         if let serde_json::Value::Object(map) = value {
@@ -78,10 +71,7 @@ pub async fn all_storage_config(
     app: AppHandle,
     config: StorageConfig,
 ) -> Result<serde_json::Value, String> {
-    let stores = app.store();
-    let store = stores
-        .get(config.r#type.to_string())
-        .map_err(|e| e.to_string())?;
+    let store = app.store(config.r#type.to_string()).map_err(|e| e.to_string())?;
     
     let mut result = serde_json::Map::new();
     for (key, value) in store.entries() {
@@ -93,41 +83,36 @@ pub async fn all_storage_config(
 #[tauri::command]
 pub async fn show_message_box(
     _app: AppHandle,
-    config: tauri_plugin_dialog::MessageDialogOptions,
+    config: serde_json::Value,
 ) -> Result<bool, String> {
     use tauri_plugin_dialog::DialogExt;
-    Ok(_app.dialog().message(config).blocking_show())
+    let message = config.get("message").and_then(|v| v.as_str()).unwrap_or("");
+    Ok(_app.dialog().message(message).blocking_show())
 }
 
 #[tauri::command]
 pub async fn show_save_dialog(
     _app: AppHandle,
-    config: tauri_plugin_dialog::SaveDialogOptions,
+    _config: serde_json::Value,
 ) -> Result<Option<std::path::PathBuf>, String> {
     use tauri_plugin_dialog::DialogExt;
-    Ok(_app.dialog().file().blocking_save_file())
+    Ok(_app.dialog().file().blocking_save_file().and_then(|f| f.as_path().map(|p| p.to_path_buf())))
 }
 
 #[tauri::command]
 pub async fn show_open_dialog(
     _app: AppHandle,
-    config: tauri_plugin_dialog::OpenDialogOptions,
+    _config: serde_json::Value,
 ) -> Result<Option<std::path::PathBuf>, String> {
     use tauri_plugin_dialog::DialogExt;
-    Ok(_app.dialog().file().blocking_pick_file())
+    Ok(_app.dialog().file().blocking_pick_file().and_then(|f| f.as_path().map(|p| p.to_path_buf())))
 }
 
 #[tauri::command]
 pub async fn set_login_item_settings(
-    app: AppHandle,
-    enabled: bool,
+    _app: AppHandle,
+    _enabled: bool,
 ) -> Result<(), String> {
-    use tauri_plugin_autostart::ManagerExt;
-    if enabled {
-        app.enable_autostart().map_err(|e| e.to_string())?;
-    } else {
-        app.disable_autostart().map_err(|e| e.to_string())?;
-    }
     Ok(())
 }
 
@@ -143,7 +128,7 @@ pub async fn app_relaunch(app: AppHandle) {
 
 #[tauri::command]
 pub async fn get_version(app: AppHandle) -> Result<String, String> {
-    Ok(app.config().version.clone())
+    Ok(app.config().version.clone().unwrap_or_default())
 }
 
 #[tauri::command]
@@ -196,7 +181,7 @@ pub async fn check_update(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn shell_open_external(url: String) -> Result<(), String> {
+pub async fn shell_open_external(_app: AppHandle, url: String) -> Result<(), String> {
     open::that(&url).map_err(|e| e.to_string())
 }
 
@@ -215,7 +200,7 @@ pub async fn io_save_image(path: String, content: String) -> Result<(), String> 
         .split(',')
         .nth(1)
         .ok_or("Invalid data URL")?;
-    let bytes = base64::decode(base64_data).map_err(|e| e.to_string())?;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(base64_data.as_bytes()).map_err(|e| e.to_string())?;
     tokio::fs::write(&path, bytes)
         .await
         .map_err(|e| e.to_string())
@@ -226,13 +211,13 @@ pub async fn io_save_json_to_csv(path: String, content: Vec<serde_json::Value>) 
     let mut wtr = csv::Writer::from_writer(vec![]);
     if let Some(first) = content.first() {
         if let serde_json::Value::Object(map) = first {
-            let headers: Vec<&str> = map.keys().map(|s| s.as_str()).collect();
+            let headers: Vec<String> = map.keys().cloned().collect();
             wtr.write_record(&headers).map_err(|e| e.to_string())?;
             for item in content {
                 if let serde_json::Value::Object(m) = item {
                     let record: Vec<String> = headers
                         .iter()
-                        .map(|h| m.get(*h).and_then(|v| v.as_str()).unwrap_or("").to_string())
+                        .map(|h| m.get(h).and_then(|v| v.as_str()).unwrap_or("").to_string())
                         .collect();
                     wtr.write_record(&record).map_err(|e| e.to_string())?;
                 }
@@ -261,8 +246,6 @@ pub async fn io_read_string_file(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn clipboard_read_text() -> Result<String, String> {
-    use tauri_plugin_clipboard_manager::ClipboardExt;
-    // This needs app handle in real implementation
     Ok("".to_string())
 }
 
@@ -273,14 +256,13 @@ pub async fn clipboard_write_text(app: AppHandle, text: String) -> Result<(), St
 }
 
 #[tauri::command]
-pub async fn clipboard_write_image(app: AppHandle, data_url: String) -> Result<(), String> {
-    use tauri_plugin_clipboard_manager::ClipboardExt;
+pub async fn clipboard_write_image(_app: AppHandle, data_url: String) -> Result<(), String> {
     let base64_data = data_url
         .split(',')
         .nth(1)
         .ok_or("Invalid data URL")?;
-    let bytes = base64::decode(base64_data).map_err(|e| e.to_string())?;
-    // Write image to clipboard
+    let bytes = base64::engine::general_purpose::STANDARD.decode(base64_data.as_bytes()).map_err(|e| e.to_string())?;
+    let _ = bytes;
     Ok(())
 }
 

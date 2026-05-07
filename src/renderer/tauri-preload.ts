@@ -154,19 +154,24 @@ export async function initContextModules() {
     },
     electronStore: {
       get: async (type: Store.StoreType, key: string, init?: unknown) => {
-        return await invoke('get_storage_config', { config: { type, key, init } });
+        const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        return await invoke('get_storage_config', { config: { type: upperType, key, init } });
       },
       set: async (type: Store.StoreType, key: string, value: unknown) => {
-        return await invoke('set_storage_config', { config: { type, key, value } });
+        const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        return await invoke('set_storage_config', { config: { type: upperType, key, value } });
       },
       delete: async (type: Store.StoreType, key: string) => {
-        return await invoke('delete_storage_config', { config: { type, key } });
+        const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        return await invoke('delete_storage_config', { config: { type: upperType, key } });
       },
       cover: async (type: Store.StoreType, value: unknown) => {
-        return await invoke('cover_storage_config', { config: { type, value } });
+        const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        return await invoke('cover_storage_config', { config: { type: upperType, value } });
       },
       all: async (type: Store.StoreType) => {
-        return await invoke('all_storage_config', { config: { type } });
+        const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        return await invoke('all_storage_config', { config: { type: upperType } });
       },
     },
   };

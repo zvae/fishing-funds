@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Manager};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
+use tokio;
 
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
@@ -24,7 +25,10 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 "check_update" => {
-                    crate::updater::check_update(app);
+                    let app = app.clone();
+                    tokio::spawn(async move {
+                        crate::updater::check_update(&app).await;
+                    });
                 }
                 _ => {}
             }

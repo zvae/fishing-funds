@@ -1,10 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
-import { getName, getVersion, getTauriVersion } from '@tauri-apps/api/app';
+import { getName, getVersion as getTauriAppVersion, getTauriVersion as getTauriRuntimeVersion } from '@tauri-apps/api/app';
 import { platform, arch } from '@tauri-apps/plugin-os';
 
 export async function getVersion(): Promise<string> {
   try {
-    return await getVersion();
+    return await getTauriAppVersion();
   } catch {
     return '0.1.0';
   }
@@ -36,7 +36,7 @@ export async function getAppName(): Promise<string> {
 
 export async function getTauriVersion(): Promise<string> {
   try {
-    return await getTauriVersion();
+    return await getTauriRuntimeVersion();
   } catch {
     return '2.0.0';
   }

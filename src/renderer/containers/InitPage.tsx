@@ -127,7 +127,7 @@ const InitPage = () => {
      * 主题
      */
     await ipcRenderer
-      .invoke('get-should-use-dark-colors')
+      .invoke('get_should_use_dark_colors')
       .then((_) => dispatch(syncDarkMode(_)))
       .finally(() => setLoading('系统主题加载完成'));
     /**

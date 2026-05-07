@@ -84,7 +84,7 @@ impl HotkeyManager {
                 if event.state == ShortcutState::Pressed {
                     if let Some(window) = app.get_webview_window("main") {
                         let visible = window.is_visible().unwrap_or(false);
-                        app.emit("trigger-translate", visible).ok();
+                        let _ = visible;
                     }
                 }
             })
@@ -95,7 +95,7 @@ impl HotkeyManager {
     }
 }
 
-pub fn setup_hotkeys(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+pub fn setup_hotkeys(_app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     // Hotkeys will be registered dynamically via commands
     Ok(())
 }

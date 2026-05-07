@@ -20,16 +20,9 @@ impl std::fmt::Display for StoreType {
 pub fn init_stores(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use tauri_plugin_store::StoreExt;
     
-    let stores = app.store();
-    
-    // Initialize config store
-    stores.get_or_create("config")?;
-    
-    // Initialize cache store
-    stores.get_or_create("cache")?;
-    
-    // Initialize state store
-    stores.get_or_create("state")?;
+    app.store("config")?;
+    app.store("cache")?;
+    app.store("state")?;
     
     Ok(())
 }

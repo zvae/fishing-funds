@@ -13,8 +13,9 @@ export default defineConfig(({ command }) => {
   };
 
   return {
+    root: 'src/renderer',
     build: {
-      outDir: 'release/app/dist/renderer',
+      outDir: '../../release/app/dist/renderer',
       minify: prod,
       cssCodeSplit: false,
       assetsInlineLimit: 1024 * 20,

@@ -21,9 +21,7 @@
         "minHeight": 400,
         "visible": false,
         "decorations": true,
-        "transparent": true,
-        "vibrancy": "sidebar",
-        "visualEffectState": "active"
+        "transparent": true
       }
     ],
     "security": {
