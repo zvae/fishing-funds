@@ -76,8 +76,10 @@ echarts.registerMap('china', chinaMap as any);
 // np检测
 NP.enableBoundaryChecking(false);
 
-// Initialize Tauri context modules
-await initContextModules();
+// 初始化 Tauri 上下文模块，只有在 Tauri 环境下才初始化
+if (window.__TAURI__) {
+  await initContextModules();
+}
 
 const { ipcRenderer } = window.contextModules.electron;
 const isSupportBlurBg = false; // Will be set via Tauri command later
