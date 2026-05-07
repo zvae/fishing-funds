@@ -1,7 +1,9 @@
+import { fetchJson } from './request';
+
 export const GetRemoteCoinsFromCoingecko = async (): Promise<Coin.RemoteCoin[]> => {
   const url = 'https://api.coingecko.com/api/v3/coins/list';
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return data.map((item: any) => ({
     id: item.id,
     symbol: item.symbol,
@@ -11,8 +13,8 @@ export const GetRemoteCoinsFromCoingecko = async (): Promise<Coin.RemoteCoin[]> 
 
 export const GetDetailFromCoingecko = async (code: string): Promise<Coin.DetailItem> => {
   const url = `https://api.coingecko.com/api/v3/coins/${code}`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return {
     id: data.id,
     symbol: data.symbol,
@@ -28,8 +30,8 @@ export const FromCoingecko = async (
   unit: string
 ): Promise<Coin.ResponseItem[]> => {
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${unit}&ids=${ids}&order=market_cap_desc&sparkline=false`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return data.map((item: any) => ({
     id: item.id,
     symbol: item.symbol,
@@ -46,8 +48,8 @@ export const GetHistoryFromCoingecko = async (
   date: string
 ): Promise<any[]> => {
   const url = `https://api.coingecko.com/api/v3/coins/${code}/market_chart?vs_currency=${unit}&days=${date}`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return data.prices.map((item: any[]) => ({
     timestamp: item[0],
     price: item[1],
@@ -60,8 +62,8 @@ export const GetKFromCoingecko = async (
   date: string
 ): Promise<any[]> => {
   const url = `https://api.coingecko.com/api/v3/coins/${code}/ohlc?vs_currency=${unit}&days=${date}`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return data.map((item: any[]) => ({
     timestamp: item[0],
     open: item[1],
@@ -76,8 +78,8 @@ export const FromCoinCap = async (
   unit: string
 ): Promise<Coin.ResponseItem[]> => {
   const url = `https://api.coincap.io/v2/assets?ids=${ids}`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return data.data.map((item: any) => ({
     id: item.id,
     symbol: item.symbol,

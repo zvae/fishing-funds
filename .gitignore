@@ -40,3 +40,7 @@ release/build
 
 target/
 gen/
+
+.trae/
+
+run_tauri.bat

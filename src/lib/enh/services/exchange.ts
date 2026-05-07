@@ -1,3 +1,5 @@
+import { fetchJson } from './request';
+
 interface ExchangeResponse {
   code: string;
   name: string;
@@ -11,11 +13,10 @@ export const GetListFromEastmoney = async (
   params: string
 ): Promise<Exchange.ResponseItem[]> => {
   const url = `https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=100&fs=${params}&fields=f12,f14,f2,f3,f4,f15,f16`;
-  const response = await fetch(url);
-  const data = await response.json();
-  
+  const data = await fetchJson<any>(url);
+
   if (!data.data?.diff) return [];
-  
+
   return data.data.diff.map((item: any) => ({
     code: item.f12,
     name: item.f14,
@@ -27,11 +28,10 @@ export const GetListFromEastmoney = async (
 
 export const GetGlobalBondFromEastmoney = async (): Promise<Exchange.ResponseItem[]> => {
   const url = 'https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=50&fs=b:MK0401&fields=f12,f14,f2,f3,f4';
-  const response = await fetch(url);
-  const data = await response.json();
-  
+  const data = await fetchJson<any>(url);
+
   if (!data.data?.diff) return [];
-  
+
   return data.data.diff.map((item: any) => ({
     code: item.f12,
     name: item.f14,

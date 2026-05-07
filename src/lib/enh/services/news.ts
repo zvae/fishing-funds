@@ -1,11 +1,14 @@
+import { fetchJson } from './request';
+import * as Enums from '@/utils/enums';
+
 export const GetRecent = async (
   keyword: string,
   pageIndex: number,
   filter?: Enums.NewsFilterType
 ): Promise<{ total: number; list: any[] }> => {
   const url = `https://searchapi.eastmoney.com/news/json.jsp?keyword=${encodeURIComponent(keyword)}&pageindex=${pageIndex}&pagesize=20`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return {
     total: data.total || 0,
     list: (data.list || []).map((item: any) => ({
@@ -20,8 +23,8 @@ export const GetRecent = async (
 
 export const GetLiveList = async (): Promise<News.ResponseItem[]> => {
   const url = 'https://np-listapi.eastmoney.com/comm/web/getFastNewsList?type=106&pagesize=20';
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return (data.data?.fastNewsList || []).map((item: any) => ({
     id: item.id,
     title: item.title,
@@ -33,8 +36,8 @@ export const GetLiveList = async (): Promise<News.ResponseItem[]> => {
 
 export const GetUsaList = async (): Promise<News.ResponseItem[]> => {
   const url = 'https://np-listapi.eastmoney.com/comm/web/getNewsByType?type=100&pagesize=20';
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return (data.data?.newsList || []).map((item: any) => ({
     id: item.id,
     title: item.title,
@@ -58,8 +61,8 @@ export const GetGoodsList = GetUsaList;
 
 export const GetGuBaList = async (keyword: string, type: string): Promise<any[]> => {
   const url = `https://searchapi.eastmoney.com/bussiness/web/QuotationLabelSearch?keyword=${encodeURIComponent(keyword)}`;
-  const data = await fetch(url).then((r) => r.json());
-  
+  const data = await fetchJson<any>(url);
+
   return (data.QuotationLabelSearch?.returnData?.datas || []).map((item: any) => ({
     code: item.Code,
     name: item.Name,
