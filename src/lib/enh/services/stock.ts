@@ -1,4 +1,4 @@
-import { fetchJson, fetchText } from './request';
+import { fetchJson, fetchText, jsonp } from './request';
 
 export const FromEastmoney = async (secid: string): Promise<Stock.ResponseItem> => {
   const [market, code] = secid.split('.');
@@ -26,36 +26,58 @@ export const FromEastmoney = async (secid: string): Promise<Stock.ResponseItem> 
 };
 
 export const SearchFromEastmoney = async (keyword: string): Promise<Stock.SearchResult[]> => {
-  const url = `https://searchapi.eastmoney.com/bussiness/web/QuotationLabelSearch?keyword=${encodeURIComponent(keyword)}`;
-  const data = await fetchJson<any>(url);
-
-  if (!data.QuotationLabelSearch?.returnData?.datas) return [];
-
-  const result: Stock.SearchResult[] = [];
-  const types = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
-  for (const item of data.QuotationLabelSearch.returnData.datas) {
-    if (types.has(item.Type)) {
+  try {
+    const url = `https://suggest3.sinajs.cn/suggest/type=11,12,13,14,15&name=${encodeURIComponent(keyword)}`;
+    const text = await fetchText(url);
+    
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return [];
+    
+    const result: Stock.SearchResult[] = [];
+    const stockDatas: any[] = [];
+    
+    for (const line of lines) {
+      const match = line.match(/suggest\["([^"]+)"\]\s*=\s*"([^"]+)"/);
+      if (!match) continue;
+      
+      const key = match[1];
+      const dataStr = match[2];
+      const parts = dataStr.split(',');
+      
+      if (parts.length >= 6) {
+        const type = parts[0];
+        const code = parts[2];
+        const name = parts[1];
+        const market = parts[3];
+        
+        stockDatas.push({
+          Code: code,
+          Name: name,
+          ID: code,
+          MktNum: market.includes('sh') ? '1' : market.includes('sz') ? '0' : '0',
+          SecurityType: type === '11' ? 'A股' : type === '12' ? 'B股' : type === '13' ? '港股' : '其他',
+          UnifiedId: code,
+          MarketType: market.includes('sh') ? 1 : 0,
+          JYS: market.includes('sh') ? '上海' : market.includes('sz') ? '深圳' : '其他',
+          UnifiedCode: code,
+        });
+      }
+    }
+    
+    if (stockDatas.length > 0) {
       result.push({
-        Type: item.Type,
-        Name: item.TypeName,
-        Count: item.Count,
-        Datas: item.Datas.map((d: any) => ({
-          Code: d.Code,
-          Name: d.Name,
-          ID: d.ID,
-          MktNum: d.MktNum,
-          SecurityType: d.SecurityType,
-          UnifiedId: d.UnifiedId,
-          MarketType: d.MarketType,
-          JYS: d.JYS,
-          UnifiedCode: d.UnifiedCode,
-        })),
+        Type: 1,
+        Name: '股票',
+        Count: stockDatas.length,
+        Datas: stockDatas,
       });
     }
+    
+    return result;
+  } catch (error) {
+    console.error('SearchFromSina error:', error);
+    return [];
   }
-
-  return result;
 };
 
 export const GetIndustryFromEastmoney = async (secid: string, type: number): Promise<Stock.IndustryItem[]> => {
@@ -166,23 +188,33 @@ export const GetTrendFromEastmoney = async (secid: string): Promise<Stock.TrendI
 };
 
 export const GetKFromEastmoney = async (secid: string, kCode: number, timeCode: number): Promise<any[]> => {
-  const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=${kCode}&fqt=${timeCode}&end=20500101`;
-  const data = await fetchJson<any>(url);
-
-  if (!data.data?.klines) return [];
-
-  return data.data.klines.map((item: string) => {
-    const parts = item.split(',');
-    return {
-      date: parts[0],
-      open: parseFloat(parts[1]),
-      close: parseFloat(parts[2]),
-      high: parseFloat(parts[3]),
-      low: parseFloat(parts[4]),
-      volume: parseFloat(parts[5]),
-      amount: parseFloat(parts[6]),
-    };
-  });
+  try {
+    const [market, code] = secid.split('.');
+    
+    const period = kCode === 101 ? '240' : kCode === 102 ? '1440' : kCode === 103 ? '10080' : '240';
+    const datalen = 100;
+    
+    const url = `https://quotes.sina.cn/cn/api/jsonp.php/IO.XSRV2.CallbackList['xxx']/CN_MarketDataService.getKLineData?symbol=${code}&scale=${period}&datalen=${datalen}`;
+    const text = await fetchText(url);
+    
+    const match = text.match(/CN_MarketDataService\.getKLineData\((\[.*?\])\)/);
+    if (!match) return [];
+    
+    const data: any[] = JSON.parse(match[1]);
+    
+    return data.map((item: any) => ({
+      date: item.day,
+      open: parseFloat(item.open),
+      close: parseFloat(item.close),
+      high: parseFloat(item.high),
+      low: parseFloat(item.low),
+      volume: parseFloat(item.volume),
+      amount: 0,
+    }));
+  } catch (error) {
+    console.error('GetKFromSina error:', error);
+    return [];
+  }
 };
 
 export const GetPicTrendFromEastmoney = async (secid: string): Promise<any> => {
@@ -194,26 +226,82 @@ export const GetReportDate = async (): Promise<string[]> => {
 };
 
 export const GetStockHoldFunds = async (secid: string, date: string): Promise<any[]> => {
-  const [market, code] = secid.split('.');
-  const url = `https://datafunds.eastmoney.com/data/FundHoldData?stockcode=${code}&type=1&date=${date}`;
-  const data = await fetchJson<any>(url);
-
-  return data.datas || [];
+  try {
+    const [market, code] = secid.split('.');
+    
+    const timestamp = Date.now();
+    const url = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${code}&topline=10&year=&month=&rt=0.${timestamp}`;
+    const text = await fetchText(url);
+    
+    const stockMatch = text.match(/<table[^>]*class="w782"[^>]*>([\s\S]*?)<\/table>/);
+    if (!stockMatch) return [];
+    
+    const rows = stockMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/g) || [];
+    const result: any[] = [];
+    
+    for (const row of rows.slice(1, 11)) {
+      const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
+      if (cells.length >= 5) {
+        const getText = (html: string) => {
+          const textMatch = html.match(/<a[^>]*>([\s\S]*?)<\/a>/);
+          if (textMatch) {
+            return textMatch[1].replace(/<[^>]+>/g, '').trim();
+          }
+          return html.replace(/<[^>]+>/g, '').trim();
+        };
+        
+        result.push({
+          code: getText(cells[1]),
+          name: getText(cells[2]),
+          ratio: getText(cells[3]),
+          shares: getText(cells[4]),
+          value: getText(cells[5]),
+        });
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('GetStockHoldFunds error:', error);
+    return [];
+  }
 };
 
 export const GetABCompany = async (secid: string): Promise<Stock.Company> => {
-  const [market, code] = secid.split('.');
-  const url = `https://emweb.eastmoney.com/PC_HSF10/CompanySurvey/Index?type=web&code=${secid}`;
-  const html = await fetchText(url);
-
-  return {
-    gsjs: '',
-    sshy: '',
-    dsz: '',
-    zcdz: '',
-    clrq: '',
-    ssrq: '',
-  };
+  try {
+    const [market, code] = secid.split('.');
+    
+    const url = `https://vip.stock.finance.sina.com.cn/corp/go.php/vCI_CorpInfo/stockid/${code}.phtml`;
+    const html = await fetchText(url);
+    
+    const getText = (label: string) => {
+      const regex = new RegExp(`<td[^>]*>${label}[\\s\\S]*?<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>`, 'i');
+      const match = html.match(regex);
+      if (match) {
+        return match[1].replace(/<[^>]+>/g, '').trim();
+      }
+      return '';
+    };
+    
+    return {
+      gsjs: getText('公司简介') || getText('英文简称'),
+      sshy: getText('所属行业') || getText('行业类别'),
+      dsz: getText('董事长') || '',
+      zcdz: getText('注册地址') || getText('办公地址'),
+      clrq: getText('成立日期') || '',
+      ssrq: getText('上市日期') || '',
+    };
+  } catch (error) {
+    console.error('GetABCompany error:', error);
+    return {
+      gsjs: '',
+      sshy: '',
+      dsz: '',
+      zcdz: '',
+      clrq: '',
+      ssrq: '',
+    };
+  }
 };
 
 export const GetHKCompany = GetABCompany;
@@ -225,15 +313,63 @@ export const GetMeetingData = async (params: {
   startTime: string;
   endTime: string;
 }): Promise<any[]> => {
-  const url = `https://datainterface.eastmoney.com/EM_DataCenter/JS.aspx?type=SR&sty=SR01&st=2&sc=3&p=1&ps=100&code=${params.code}&spt=${params.startTime}&ept=${params.endTime}`;
-  const data = await fetchJson<any>(url);
-
-  return data.datas || [];
+  try {
+    const url = `https://vip.stock.finance.sina.com.cn/q/go.php/vIR_RawItem/index.phtml?symbol=${params.code}`;
+    const html = await fetchText(url);
+    
+    const tableMatch = html.match(/<table[^>]*class="list"[^>]*>([\s\S]*?)<\/table>/);
+    if (!tableMatch) return [];
+    
+    const rows = tableMatch[1].match(/<tr[^>]*>([\s\S]*?)<\/tr>/g) || [];
+    const result: any[] = [];
+    
+    for (const row of rows.slice(1)) {
+      const cells = row.match(/<td[^>]*>([\s\S]*?)<\/td>/g) || [];
+      if (cells.length >= 3) {
+        const getText = (html: string) => html.replace(/<[^>]+>/g, '').trim();
+        
+        result.push({
+          date: getText(cells[0]),
+          title: getText(cells[1]),
+          type: getText(cells[2]),
+        });
+      }
+    }
+    
+    return result.filter(item => {
+      if (!params.startTime || !params.endTime) return true;
+      return item.date >= params.startTime && item.date <= params.endTime;
+    });
+  } catch (error) {
+    console.error('GetMeetingData error:', error);
+    return [];
+  }
 };
 
 export const GetCloseDayDates = async (): Promise<string[]> => {
-  const url = 'https://quote.eastmoney.com/stockapi/getCloseDayDates';
-  const data = await fetchJson<any>(url);
-
-  return data.data || [];
+  try {
+    const year = new Date().getFullYear();
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+    
+    const url = `http://query.sse.com.cn/commonCal.do?type=cal&begin=${startDate}&end=${endDate}`;
+    const data = await fetchJson<any>(url);
+    
+    const result: string[] = [];
+    if (data && data.data && Array.isArray(data.data)) {
+      for (const item of data.data) {
+        if (item.tradeType === '1' && item.date) {
+          result.push(item.date);
+        }
+      }
+    }
+    
+    return result.sort().reverse();
+  } catch (error) {
+    console.error('GetCloseDayDates error:', error);
+    
+    const year = new Date().getFullYear();
+    const quarters = ['12-31', '09-30', '06-30', '03-31'];
+    return quarters.map(q => `${year}-${q}`);
+  }
 };
