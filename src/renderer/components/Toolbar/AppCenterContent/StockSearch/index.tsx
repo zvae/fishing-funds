@@ -79,6 +79,7 @@ const StockSearch: React.FC<StockSearchProps> = (props) => {
           children: (
             <ChartCard pureContent showCollapse>
               {Datas.map(({ Name, Code, MktNum }) => {
+                 console.log('Datas:', Datas);
                 const secid = `${MktNum}.${Code}`;
                 return (
                   <div key={secid} className={styles.stock} onClick={() => setDetailDrawer({ secid, type: Type })}>

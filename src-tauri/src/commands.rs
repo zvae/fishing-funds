@@ -303,12 +303,45 @@ pub async fn openai_update_config(
     Ok(())
 }
 
+#[derive(serde::Deserialize)]
+pub struct ProxyConfig {
+    mode: Option<String>,
+    #[serde(rename = "proxyRules")]
+    proxy_rules: Option<String>,
+}
+
 #[tauri::command]
 pub async fn set_proxy(
     _app: AppHandle,
-    _config: String,
+    config: ProxyConfig,
 ) -> Result<(), String> {
     // Implement proxy configuration
+        // 从 config 里读取模式
+    // let mode = config.get("mode").and_then(|v| v.as_str());
+    let mode = config.mode.as_deref();
+    // 从 config 里读取代理规则
+    let proxy_rules = config.proxy_rules.as_deref();
+
+    // 根据不同模式处理
+    match mode {
+        Some("system") => {
+            log::info!("Using system proxy settings");
+            // TODO: 调用系统接口或者库设置系统代理
+        },
+        Some("direct") => {
+            log::info!("Direct connection, no proxy");
+            // TODO: 清除代理
+        },
+        _ => {
+            if let Some(rules) = proxy_rules {
+                log::info!("Setting custom proxy rules: {}", rules);
+                // TODO: 设置 HTTP 或 SOCKS 代理
+            } else {
+                log::info!("No valid proxy configuration provided");
+            }
+        }
+    }
+
     Ok(())
 }
 

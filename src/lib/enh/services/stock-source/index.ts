@@ -76,9 +76,11 @@ export class StockSourceManager {
     for (const sourceName of sourcesToTry) {
       try {
         const source = this.sources.get(sourceName);
+        console.log(`[StockSource] search from ${sourceName}:, ${source}`, keyword);
         if (!source) continue;
 
         const results = await source.search(keyword);
+        console.log(`[StockSource] search from ${sourceName}:`, results);
         if (results.length > 0) {
           console.log(`[StockSource] search success from ${sourceName}:`, results.length, 'items');
           return results;

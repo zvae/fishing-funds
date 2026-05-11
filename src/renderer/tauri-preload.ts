@@ -5,66 +5,10 @@ import {
 import { listen } from '@tauri-apps/api/event';
 import { getVersion, getPlatform } from './tauri-adapter';
 
-declare global {
-  interface Window {
-    contextModules: {
-      request: (url: string, config: any) => Promise<any>;
-      process: {
-        production: boolean;
-        platform: string;
-        tauri: string;
-        arch: string;
-        buildDate: number;
-      };
-      electron: {
-        shell: {
-          openExternal: (url: string) => Promise<void>;
-        };
-        ipcRenderer: {
-          invoke: (channel: string, ...args: any[]) => Promise<any>;
-          removeAllListeners: (channel: string) => void;
-          removeListener: (channel: string, listener: any) => void;
-          on: (channel: string, listener: any) => void;
-        };
-        dialog: {
-          showMessageBox: (config: any) => Promise<any>;
-          showSaveDialog: (config: any) => Promise<any>;
-          showOpenDialog: (config: any) => Promise<any>;
-        };
-        app: {
-          setLoginItemSettings: (config: any) => Promise<void>;
-          quit: () => Promise<void>;
-          relaunch: () => Promise<void>;
-          getVersion: () => Promise<string>;
-        };
-        clipboard: {
-          readText: () => Promise<string>;
-          writeText: (text: string) => Promise<void>;
-          writeImage: (dataUrl: string) => Promise<void>;
-        };
-      };
-      io: {
-        saveImage: (path: string, content: string) => Promise<void>;
-        saveJsonToCsv: (path: string, content: any[]) => Promise<void>;
-        saveString: (path: string, content: string) => Promise<void>;
-        readStringFile: (path: string) => Promise<string>;
-        readFile: (path: string) => Promise<ArrayBuffer>;
-      };
-      electronStore: {
-        get: (type: Store.StoreType, key: string, init?: unknown) => Promise<any>;
-        set: (type: Store.StoreType, key: string, value: unknown) => Promise<void>;
-        delete: (type: Store.StoreType, key: string) => Promise<void>;
-        cover: (type: Store.StoreType, value: unknown) => Promise<void>;
-        all: (type: Store.StoreType) => Promise<any>;
-      };
-    };
-  }
-}
-
 export async function initContextModules() {
   const platform = await getPlatform();
   const version = await getVersion();
-  
+
   window.contextModules = {
     request: async (url: string, config: any) => {
       return await invoke('request', { url, config });
@@ -84,6 +28,8 @@ export async function initContextModules() {
       },
       ipcRenderer: {
         invoke: async (channel: string, ...args: any[]) => {
+          channel = channel.replace(/-/g, '_');
+          console.log('ipcRenderer invoke', channel, ...args);
           return await invoke(channel, ...args);
         },
         removeAllListeners: (channel: string) => {
@@ -159,6 +105,7 @@ export async function initContextModules() {
       },
       set: async (type: Store.StoreType, key: string, value: unknown) => {
         const upperType = type.charAt(0).toUpperCase() + type.slice(1);
+        console.log('set_storage_config:', { type: upperType, key, value });
         return await invoke('set_storage_config', { config: { type: upperType, key, value } });
       },
       delete: async (type: Store.StoreType, key: string) => {

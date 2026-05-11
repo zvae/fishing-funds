@@ -37,9 +37,10 @@ import chinaMap from '@/static/map/china.json';
 import store from '@/store';
 import App from '@/app';
 import * as Enhancement from '@/utils/enhancement';
-import { initContextModules } from '@/tauri-preload';
+
 import 'dayjs/locale/zh-cn';
 import '@/utils/window';
+
 
 // 环境工具
 Enhancement.CheckEnvTool();
@@ -76,10 +77,7 @@ echarts.registerMap('china', chinaMap as any);
 // np检测
 NP.enableBoundaryChecking(false);
 
-// 初始化 Tauri 上下文模块，只有在 Tauri 环境下才初始化
-if (window.__TAURI__) {
-  await initContextModules();
-}
+
 
 const { ipcRenderer } = window.contextModules.electron;
 const isSupportBlurBg = false; // Will be set via Tauri command later

@@ -37,17 +37,17 @@ export const defaultSystemSetting: System.Setting = {
     {
       key: Enums.TabKeyType.Fund,
       name: '基金',
-      show: true,
+      show: false,
     },
     {
       key: Enums.TabKeyType.Zindex,
       name: '指数',
-      show: true,
+      show: false,
     },
     {
       key: Enums.TabKeyType.Quotation,
       name: '板块',
-      show: true,
+      show: false,
     },
     {
       key: Enums.TabKeyType.Stock,
@@ -57,7 +57,7 @@ export const defaultSystemSetting: System.Setting = {
     {
       key: Enums.TabKeyType.Coin,
       name: '货币',
-      show: true,
+      show: false,
     },
   ],
 

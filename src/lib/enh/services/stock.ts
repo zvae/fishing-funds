@@ -55,7 +55,6 @@ export const FromEastmoney = async (secid: string): Promise<Stock.ResponseItem> 
 export const SearchFromEastmoney = async (keyword: string): Promise<Stock.SearchResult[]> => {
   try {
     const results = await searchStock(keyword);
-    
     if (results.length === 0) {
       const url = `https://suggest3.sinajs.cn/suggest/type=11,12,13,14,15&name=${encodeURIComponent(keyword)}`;
       const text = await fetchText(url);

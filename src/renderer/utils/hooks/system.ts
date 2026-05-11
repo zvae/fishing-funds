@@ -482,17 +482,17 @@ export function useMappingLocalToSystemSetting() {
   useEffect(() => {
     switch (proxyTypeSetting) {
       case Enums.ProxyType.System:
-        ipcRenderer.invoke('set-proxy', { mode: 'system' });
+        ipcRenderer.invoke('set-proxy', {config: { mode: 'system' }});
         break;
       case Enums.ProxyType.Http:
-        ipcRenderer.invoke('set-proxy', { proxyRules: `${proxyHostSetting}:${proxyPortSetting}` });
+        ipcRenderer.invoke('set-proxy', {config: { proxyRules: `${proxyHostSetting}:${proxyPortSetting}` }});
         break;
       case Enums.ProxyType.Socks:
-        ipcRenderer.invoke('set-proxy', { proxyRules: `socks=${proxyHostSetting}:${proxyPortSetting}` });
+        ipcRenderer.invoke('set-proxy', {config: { proxyRules: `socks=${proxyHostSetting}:${proxyPortSetting}` }});
         break;
       case Enums.ProxyType.None:
       default:
-        ipcRenderer.invoke('set-proxy', { mode: 'direct' });
+        ipcRenderer.invoke('set-proxy', {config: { mode: 'direct' }});
     }
   }, [proxyTypeSetting, proxyHostSetting, proxyPortSetting]);
   useEffect(() => {
@@ -580,7 +580,7 @@ export function useTrayContent() {
   useEffect(() => {
     const content = eyeStatus ? trayContent : '';
 
-    ipcRenderer.invoke('set-tray-content', content);
+    ipcRenderer.invoke('set-tray-content', {content});
   }, [trayContent, eyeStatus]);
 }
 

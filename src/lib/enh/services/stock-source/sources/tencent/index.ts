@@ -117,13 +117,14 @@ export class TencentStockSource implements StockSourceInterface {
       const items = match[1].split('^');
       
       for (const item of items) {
-        const [market, code] = item.split('~');
-        if (market && code) {
+        // const [market, code] = item.split('~');
+         const [market, code, rawName, py, type] = item.split('~');
+        if (market && code && rawName) {
           results.push({
             code,
-            name: '',
+            name: decodeURIComponent(JSON.parse(`"${rawName}"`)),
             market: market.toUpperCase(),
-            type: this.getMarketType(market),
+            type: this.getMarketType(market.toLowerCase())
           });
         }
       }
