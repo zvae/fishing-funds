@@ -1,81 +1,131 @@
 import { fetchJson, fetchText, jsonp } from './request';
+import { getStockQuote, searchStock, type StockQuote } from './stock-source';
 
 export const FromEastmoney = async (secid: string): Promise<Stock.ResponseItem> => {
-  const [market, code] = secid.split('.');
-  const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f57,f58,f43,f44,f45,f46,f47,f48,f50,f51,f52,f55,f60,f170,f171`;
-  const data = await fetchJson<any>(url);
+  try {
+    const [market, code] = secid.split('.');
+    
+    const quote = await getStockQuote(code);
+    
+    if (!quote) {
+      const url = `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f57,f58,f43,f44,f45,f46,f47,f48,f50,f51,f52,f55,f60,f170,f171`;
+      const data = await fetchJson<any>(url);
 
-  if (!data.data) throw new Error('Stock not found');
+      if (!data.data) throw new Error('Stock not found');
 
-  const item = data.data;
-  return {
-    secid,
-    code: item.f57,
-    name: item.f58,
-    market: parseInt(market),
-    zx: item.f43 / 100,
-    zdd: item.f44,
-    zdf: item.f170,
-    zs: item.f60,
-    zg: item.f47,
-    zd: item.f48,
-    jk: item.f46,
-    time: new Date().toLocaleString(),
-    trends: [],
-  };
+      const item = data.data;
+      return {
+        secid,
+        code: item.f57,
+        name: item.f58,
+        market: parseInt(market),
+        zx: item.f43 / 100,
+        zdd: item.f44,
+        zdf: item.f170,
+        zs: item.f60,
+        zg: item.f47,
+        zd: item.f48,
+        jk: item.f46,
+        time: new Date().toLocaleString(),
+        trends: [],
+      };
+    }
+
+    return {
+      secid,
+      code: quote.code,
+      name: quote.name,
+      market: quote.market === 'SH' ? 1 : 0,
+      zx: quote.now,
+      zdd: quote.change,
+      zdf: quote.changePercent,
+      zs: quote.yesterday,
+      zg: quote.high,
+      zd: quote.low,
+      jk: quote.now,
+      time: quote.time,
+      trends: [],
+    };
+  } catch (error) {
+    console.error('FromEastmoney error:', error);
+    throw error;
+  }
 };
 
 export const SearchFromEastmoney = async (keyword: string): Promise<Stock.SearchResult[]> => {
   try {
-    const url = `https://suggest3.sinajs.cn/suggest/type=11,12,13,14,15&name=${encodeURIComponent(keyword)}`;
-    const text = await fetchText(url);
+    const results = await searchStock(keyword);
     
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return [];
-    
-    const result: Stock.SearchResult[] = [];
-    const stockDatas: any[] = [];
-    
-    for (const line of lines) {
-      const match = line.match(/suggest\["([^"]+)"\]\s*=\s*"([^"]+)"/);
-      if (!match) continue;
+    if (results.length === 0) {
+      const url = `https://suggest3.sinajs.cn/suggest/type=11,12,13,14,15&name=${encodeURIComponent(keyword)}`;
+      const text = await fetchText(url);
       
-      const key = match[1];
-      const dataStr = match[2];
-      const parts = dataStr.split(',');
+      const lines = text.split('\n').filter(line => line.trim());
+      if (lines.length === 0) return [];
       
-      if (parts.length >= 6) {
-        const type = parts[0];
-        const code = parts[2];
-        const name = parts[1];
-        const market = parts[3];
+      const result: Stock.SearchResult[] = [];
+      const stockDatas: any[] = [];
+      
+      for (const line of lines) {
+        const match = line.match(/suggest\["([^"]+)"\]\s*=\s*"([^"]+)"/);
+        if (!match) continue;
         
-        stockDatas.push({
-          Code: code,
-          Name: name,
-          ID: code,
-          MktNum: market.includes('sh') ? '1' : market.includes('sz') ? '0' : '0',
-          SecurityType: type === '11' ? 'A股' : type === '12' ? 'B股' : type === '13' ? '港股' : '其他',
-          UnifiedId: code,
-          MarketType: market.includes('sh') ? 1 : 0,
-          JYS: market.includes('sh') ? '上海' : market.includes('sz') ? '深圳' : '其他',
-          UnifiedCode: code,
+        const key = match[1];
+        const dataStr = match[2];
+        const parts = dataStr.split(',');
+        
+        if (parts.length >= 6) {
+          const type = parts[0];
+          const code = parts[2];
+          const name = parts[1];
+          const market = parts[3];
+          
+          stockDatas.push({
+            Code: code,
+            Name: name,
+            ID: code,
+            MktNum: market.includes('sh') ? '1' : market.includes('sz') ? '0' : '0',
+            SecurityType: type === '11' ? 'A股' : type === '12' ? 'B股' : type === '13' ? '港股' : '其他',
+            UnifiedId: code,
+            MarketType: market.includes('sh') ? 1 : 0,
+            JYS: market.includes('sh') ? '上海' : market.includes('sz') ? '深圳' : '其他',
+            UnifiedCode: code,
+          });
+        }
+      }
+      
+      if (stockDatas.length > 0) {
+        result.push({
+          Type: 1,
+          Name: '股票',
+          Count: stockDatas.length,
+          Datas: stockDatas,
         });
       }
+      
+      return result;
     }
     
-    if (stockDatas.length > 0) {
-      result.push({
-        Type: 1,
-        Name: '股票',
-        Count: stockDatas.length,
-        Datas: stockDatas,
-      });
-    }
+    const stockDatas = results.map(item => ({
+      Code: item.code,
+      Name: item.name || '',
+      ID: item.code,
+      MktNum: item.market === 'SH' ? '1' : '0',
+      SecurityType: item.type || '股票',
+      UnifiedId: item.code,
+      MarketType: item.market === 'SH' ? 1 : 0,
+      JYS: item.market === 'SH' ? '上海' : '深圳',
+      UnifiedCode: item.code,
+    }));
     
-    return result;
+    return [{
+      Type: 1,
+      Name: '股票',
+      Count: stockDatas.length,
+      Datas: stockDatas,
+    }];
   } catch (error) {
-    console.error('SearchFromSina error:', error);
+    console.error('SearchFromEastmoney error:', error);
     return [];
   }
 };

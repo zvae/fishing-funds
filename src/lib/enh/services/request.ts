@@ -24,28 +24,28 @@ export const get = async <T = any>(url: string): Promise<T> => {
   return request<T>(url);
 };
 
-export const fetchText = async (url: string): Promise<string> => {
+export const fetchText = async (url: string, options?: RequestInit): Promise<string> => {
   if (isTauri) {
-    const response = await window.contextModules.request(url);
+    const response = await window.contextModules.request(url, options);
     if (typeof response === 'object' && 'body' in response) {
       const body = (response as any).body;
       return typeof body === 'string' ? body : JSON.stringify(body);
     }
     return typeof response === 'string' ? response : JSON.stringify(response);
   }
-  return fetch(url).then((r) => r.text());
+  return fetch(url, options).then((r) => r.text());
 };
 
-export const fetchJson = async <T = any>(url: string): Promise<T> => {
+export const fetchJson = async <T = any>(url: string, options?: RequestInit): Promise<T> => {
   if (isTauri) {
-    const response = await window.contextModules.request(url);
+    const response = await window.contextModules.request(url, options);
     if (typeof response === 'object' && 'body' in response) {
       const body = (response as any).body;
       return typeof body === 'object' ? (body as T) : JSON.parse(body as string);
     }
     return response as T;
   }
-  return fetch(url).then((r) => r.json());
+  return fetch(url, options).then((r) => r.json());
 };
 
 export const jsonp = async <T = any>(url: string, callbackName?: string): Promise<T> => {
